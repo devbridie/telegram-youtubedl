@@ -1,25 +1,53 @@
-
 import org.telegram.telegrambots.ApiContextInitializer
 import org.telegram.telegrambots.TelegramBotsApi
 import org.telegram.telegrambots.api.methods.send.SendAudio
 import org.telegram.telegrambots.api.methods.send.SendMessage
 import org.telegram.telegrambots.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.api.methods.updatingmessages.EditMessageText
-import org.telegram.telegrambots.api.objects.Chat
+import org.telegram.telegrambots.api.objects.Message
 import org.telegram.telegrambots.api.objects.Update
-import org.telegram.telegrambots.api.objects.User
-import org.telegram.telegrambots.bots.*
-import org.telegram.telegrambots.bots.commands.BotCommand
+import org.telegram.telegrambots.bots.DefaultBotOptions
+import org.telegram.telegrambots.bots.TelegramLongPollingBot
 
-class Bot() : TelegramLongPollingCommandBot(DefaultBotOptions()) {
+class Bot : TelegramLongPollingBot(DefaultBotOptions()) {
+    override fun onUpdateReceived(update: Update) {
+        with(update) {
+            if (update.message.hasText()) {
+                if (message.text.containsLink()) {
+                    val url = message.text.extractLink()
+                    val statusMessage = sendApiMethod(SendMessage(message.chatId, "Getting info from $url...").disableWebPagePreview())
 
-    init {
-        register(AudioCommand())
-        register(StartCommand())
+                    callYoutubeDl(statusMessage, url)
+                } else {
+                    val search = message.text
+                    val statusMessage = sendApiMethod(SendMessage(message.chatId, "Using search for \"$search\"...").disableWebPagePreview())
+                    callYoutubeDl(statusMessage, search)
+                }
+            }
+        }
     }
 
-    override fun processNonCommandUpdate(update: Update?) {
-        //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    private fun Update.callYoutubeDl(statusMessage: Message, input: String) {
+        info(InfoOptions(input), { (length, fulltitle) ->
+            sendApiMethod(EditMessageText().apply {
+                messageId = statusMessage.messageId
+                text = "Downloading video \"$fulltitle\" (${length}s) from $input..."
+                chatId = message.chatId.toString()
+                disableWebPagePreview()
+            })
+            download(DownloadOptions(input, String.format("%d", System.currentTimeMillis()), true), { file ->
+                sendApiMethod(DeleteMessage(message.chatId, statusMessage.messageId))
+                sendAudio(SendAudio().apply {
+                    setNewAudio(file)
+                    setChatId(message.chatId)
+                    setMetaFromString(fulltitle)
+                })
+            }, {
+                sendApiMethod(SendMessage(message.chatId, "Download failed. Sorry :("))
+            })
+        }, {
+            sendApiMethod(SendMessage(message.chatId, "Getting info failed. Sorry :("))
+        })
     }
 
     override fun getBotToken(): String {
@@ -31,70 +59,22 @@ class Bot() : TelegramLongPollingCommandBot(DefaultBotOptions()) {
     }
 
     override fun clearWebhook() {
-        super.clearWebhook();
-    }
-}
-
-class StartCommand : BotCommand("start", "Start information") {
-    override fun execute(sender: AbsSender, user: User, chat: Chat, arguments: Array<out String>) {
-        sender.sendMessage(SendMessage(chat.id, "Commands:\n/audio <url>: Sends an mp3 of a video on <url> to this chat."))
-    }
-
-}
-
-class AudioCommand : BotCommand("audio", "Downloads audio from a youtube URL.") {
-    override fun execute(sender: AbsSender, user: User, chat: Chat, arguments: Array<out String>) {
-        if (sender !is DefaultAbsSender) return;
-        if (arguments.isEmpty()) {
-            sender.sendMessage(SendMessage(chat.id, "Try /audio <url>"))
-            return;
-        }
-
-        println("sender = [${sender}], user = [${user}], chat = [${chat}], arguments = [${arguments.joinToString(" ")}]")
-        val url = arguments.first()
-
-        val statusMessage = sender.sendMessage(SendMessage(chat.id, "Getting info from $url...").disableWebPagePreview())
-
-        info(InfoOptions(url), { info ->
-            sender.editMessageText(EditMessageText().apply {
-                messageId = statusMessage.messageId
-                text = "Downloading video \"${info.fulltitle}\" (${info.length}s) from $url..."
-                chatId = chat.id.toString()
-                disableWebPagePreview()
-            })
-            download(DownloadOptions(url, String.format("%d", System.currentTimeMillis()), true), { file ->
-                sender.deleteMessage(DeleteMessage(chat.id, statusMessage.messageId))
-                sender.sendAudioCorrect(SendAudio().apply {
-                    setNewAudio(file)
-                    setChatId(chat.id)
-                    val argTitle = arguments.drop(1)
-                    if (argTitle.isEmpty()) {
-                        setMetaFromString(info.fulltitle)
-                    } else {
-                        title = argTitle.joinToString(" ")
-                    }
-                })
-            }, {
-                sender.sendMessage(SendMessage(chat.id, "Download failed. Sorry :("))
-            })
-        }, {
-            sender.sendMessage(SendMessage(chat.id, "Getting info failed. Sorry :("))
-        })
+        super.clearWebhook()
     }
 }
 
 fun SendAudio.setMetaFromString(string: String) {
-    val meta = TitleMeta.fromString(string);
+    val meta = TitleMeta.fromString(string)
     meta.artist?.let {
-        this.performer = meta.artist;
+        this.performer = meta.artist
     }
-    this.title = meta.title;
+    this.title = meta.title
 }
 
 data class TitleMeta(val title: String, val artist: String? = null) {
     companion object {
         fun fromString(string: String): TitleMeta {
-            val split = string.split("-");
+            val split = string.split("-")
             if (split.size == 1) {
                 return TitleMeta(title = string)
             } else {
@@ -106,6 +86,6 @@ data class TitleMeta(val title: String, val artist: String? = null) {
 
 
 fun main(args: Array<String>) {
-    ApiContextInitializer.init();
+    ApiContextInitializer.init()
     TelegramBotsApi().registerBot(Bot())
 }

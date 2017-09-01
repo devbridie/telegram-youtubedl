@@ -3,6 +3,11 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.json.JSONObject
 import java.io.File
 import java.nio.charset.Charset
+import java.util.regex.Pattern
+
+val downloadsFolder = File("downloads").apply {
+    mkdirs()
+}
 
 data class DownloadOptions(
         val url: String,
@@ -11,61 +16,77 @@ data class DownloadOptions(
 )
 
 fun download(options: DownloadOptions, complete: (file: File) -> Unit, failed: () -> Unit) {
-
-    DefaultExecutor().mute().execute(youtubedl {
+    DefaultExecutor().setDownloadsCwd().mute().execute(youtubedl {
         with(options) {
             if (audioOnly) argument("-x")
+            argument("--default-search")
+            argument("ytsearch")
             argument("-o")
-            argument("download/${id}.%(ext)s")
+            argument("$id.%(ext)s")
             argument("--audio-format")
             argument("mp3")
             argument(options.url)
         }
     }, {
-        complete(File("download", options.id + ".mp3"))
+        complete(File(downloadsFolder, options.id + ".mp3"))
     }, {
-        failed();
-    });
+        failed()
+    })
 }
 
 typealias Seconds = Int;
 data class VideoInformation(val length: Seconds, val fulltitle: String)
-data class InfoOptions(val url: String)
+data class InfoOptions(val input: String)
 
 fun info(options: InfoOptions, callback: (VideoInformation) -> Unit, failed: () -> Unit) {
     val stream = ByteArrayOutputStream()
-    DefaultExecutor().pipeOutput(stream).execute(
+    DefaultExecutor().setDownloadsCwd().pipeOutput(stream).execute(
             youtubedl {
-                argument("--print-json")
-                argument(options.url)
+                argument("--write-info-json")
+                argument("--skip-download")
+                argument("--default-search")
+                argument("ytsearch")
+                argument(options.input)
             },
             {
-                val information = stream.toString(Charset.forName("UTF-8"));
-                val json = JSONObject(information);
+                val consoleOutput = stream.toString(Charset.forName("UTF-8"))
+                val infoFilePattern = Pattern.compile("Writing video description metadata as JSON to: (.*)\n")
+                val infoFileMatcher = infoFilePattern.matcher(consoleOutput)
+                infoFileMatcher.find()
+                val fileLocation = infoFileMatcher.group(1)
+                val information = File(downloadsFolder, fileLocation).readText()
+                val json = JSONObject(information)
                 val info = VideoInformation(length = json.getInt("duration"), fulltitle = json.getString("fulltitle"))
                 callback(info)
             },
             { e ->
-                val information = stream.toString(Charset.defaultCharset());
-                println("information = ${information}")
+                val information = stream.toString(Charset.defaultCharset())
+                println("information = $information")
                 failed()
             }
     )
 }
 
 private fun CommandLine.argument(argument: String) {
-    this.addArgument(argument)
+    this.addArgument(argument, false)
 }
 
 private fun youtubedl(f: CommandLine.() -> Unit): CommandLine {
     val commandLine = CommandLine("youtube-dl")
     f.invoke(commandLine)
-    return commandLine;
+    return commandLine
 }
 
 fun DefaultExecutor.mute(): DefaultExecutor {
-    //this.streamHandler = PumpStreamHandler(null, null, null)
-    return this
+    return this.apply {
+        streamHandler = PumpStreamHandler(null, null, null)
+    }
+}
+
+fun DefaultExecutor.setDownloadsCwd(): DefaultExecutor {
+    return this.apply {
+        workingDirectory = downloadsFolder
+    }
 }
 
 fun DefaultExecutor.pipeOutput(stream: ByteArrayOutputStream): DefaultExecutor {
