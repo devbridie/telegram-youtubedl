@@ -25,7 +25,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     testCompile group: 'junit', name: 'junit', version: '4.12'
 
-    compile "org.telegram:telegrambots:3.0.1"
+    compile "org.telegram:telegrambots:3.3"
     compile group: 'org.apache.commons', name: 'commons-exec', version: '1.3'
 }
 
