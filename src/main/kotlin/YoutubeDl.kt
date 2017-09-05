@@ -25,6 +25,7 @@ fun download(options: DownloadOptions, complete: (file: File) -> Unit, failed: (
             argument("$id.%(ext)s")
             argument("--audio-format")
             argument("mp3")
+            argument("--add-metadata")
             argument(options.url)
         }
     }, {
