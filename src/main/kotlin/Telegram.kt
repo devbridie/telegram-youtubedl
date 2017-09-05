@@ -35,7 +35,7 @@ class Bot : TelegramLongPollingBot(DefaultBotOptions()) {
                 chatId = message.chatId.toString()
                 disableWebPagePreview()
             })
-            download(DownloadOptions(input, String.format("%d", System.currentTimeMillis()), true), { file ->
+            download(DownloadOptions(input), { file ->
                 sendApiMethod(DeleteMessage(message.chatId, statusMessage.messageId))
                 sendAudio(SendAudio().apply {
                     setNewAudio(file)

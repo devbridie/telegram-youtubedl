@@ -10,32 +10,34 @@ val downloadsFolder = File("downloads").apply {
 }
 
 data class DownloadOptions(
-        val url: String,
-        val id: String,
-        val audioOnly: Boolean = false
+        val input: String
 )
 
 fun download(options: DownloadOptions, complete: (file: File) -> Unit, failed: () -> Unit) {
-    DefaultExecutor().setDownloadsCwd().mute().execute(youtubedl {
+    val stream = ByteArrayOutputStream()
+    DefaultExecutor().setDownloadsCwd().pipeOutput(stream).execute(youtubedl {
         with(options) {
-            if (audioOnly) argument("-x")
+            argument("-x")
             argument("--default-search")
             argument("ytsearch")
-            argument("-o")
-            argument("$id.%(ext)s")
             argument("--audio-format")
             argument("mp3")
             argument("--add-metadata")
-            argument(options.url)
+            argument(options.input)
         }
     }, {
-        complete(File(downloadsFolder, options.id + ".mp3"))
+        val consoleOutput = stream.toString(Charset.forName("UTF-8"))
+        val infoFilePattern = Pattern.compile("\\[ffmpeg] Destination: (.+?)\n")
+        val infoFileMatcher = infoFilePattern.matcher(consoleOutput)
+        infoFileMatcher.find()
+        val fileLocation = infoFileMatcher.group(1)
+        complete(File(downloadsFolder, fileLocation))
     }, {
         failed()
     })
 }
 
-typealias Seconds = Int;
+typealias Seconds = Int
 data class VideoInformation(val length: Seconds, val fulltitle: String)
 data class InfoOptions(val input: String)
 
