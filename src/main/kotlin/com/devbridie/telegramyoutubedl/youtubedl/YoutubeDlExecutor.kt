@@ -7,32 +7,44 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.Charset
 
-class YoutubeDlException(
-        val errorCode: Int,
+data class YoutubeDlExecutorResult(
+        val code: Int,
         val out: String,
         val err: String
-) : RuntimeException("youtube-dl exited with code $errorCode")
+)
 
-class YoutubeDlExecutor(val commandLine: CommandLine) : DefaultExecutor() {
-    val outStream = ByteArrayOutputStream()
-    val errorStream = ByteArrayOutputStream()
-    init {
+class YoutubeDlExitCodeException(val result: YoutubeDlExecutorResult) : RuntimeException("youtube-dl exited with code ${result.code}")
+
+class YoutubeDlExecutor {
+    private val outStream = ByteArrayOutputStream()
+    private val errorStream = ByteArrayOutputStream()
+
+    val workingDirectory = File("downloads").apply {
+        mkdirs()
+    }
+
+    private val executor = DefaultExecutor().apply {
         streamHandler = PumpStreamHandler(outStream, errorStream)
-        workingDirectory = File("downloads").apply {
-            mkdirs()
-        }
+        workingDirectory = this@YoutubeDlExecutor.workingDirectory
         setExitValues(null)
     }
 
-    fun getOutputText() = String(outStream.toByteArray(), Charset.defaultCharset())
-    fun getErrorText() = String(errorStream.toByteArray(), Charset.defaultCharset())
+    private fun getOutputText() = String(outStream.toByteArray(), Charset.defaultCharset())
+    private fun getErrorText() = String(errorStream.toByteArray(), Charset.defaultCharset())
 
-    fun execute(): Int {
-        val output = super.execute(commandLine)
-        if (output == 0) {
-            return output
+    fun execute(f: CommandLine.() -> Unit): YoutubeDlExecutorResult {
+        val commandLine = CommandLine("youtube-dl")
+        f.invoke(commandLine)
+        val code = executor.execute(commandLine)
+        val result = YoutubeDlExecutorResult(code, getOutputText(), getErrorText())
+        if (code == 0) {
+            return result
         } else {
-            throw YoutubeDlException(output, getOutputText(), getErrorText())
+            throw YoutubeDlExitCodeException(result)
         }
     }
+}
+
+fun CommandLine.argument(argument: String) {
+    this.addArgument(argument, false)
 }

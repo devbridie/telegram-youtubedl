@@ -15,13 +15,13 @@ java {
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:1.2.0")
     compile("org.telegram:telegrambots:3.5")
     compile("org.telegram:telegrambotsextensions:3.5")
-    compile("io.github.microutils:kotlin-logging:1.4.6")
     compile("com.natpryce:konfig:1.6.1.0")
     compile("com.squareup.moshi:moshi:1.5.0")
     compile("com.squareup.moshi:moshi-kotlin:1.5.0")
@@ -32,7 +32,7 @@ dependencies {
 val fatJar = task("fatJar", type = Jar::class) {
     baseName = "${project.name}-fat"
     manifest {
-        attributes["Main-Class"] = "com.devbridie.telegramyoutubedl.telegram.Main"
+        attributes["Main-Class"] = "com.devbridie.telegramyoutubedl.MainKt"
     }
     from(configurations.runtime.map({ if (it.isDirectory) it else zipTree(it) }))
     with(tasks["jar"] as CopySpec)

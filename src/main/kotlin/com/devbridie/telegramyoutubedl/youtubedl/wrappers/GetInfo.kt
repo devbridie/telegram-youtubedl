@@ -1,17 +1,27 @@
-package com.devbridie.telegramyoutubedl.youtubedl
+package com.devbridie.telegramyoutubedl.youtubedl.wrappers
 
+import com.devbridie.telegramyoutubedl.youtubedl.YoutubeDlExecutor
+import com.devbridie.telegramyoutubedl.youtubedl.argument
 import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
+import java.io.EOFException
 
 typealias Seconds = Int
 data class VideoInformation(val duration: Seconds, val fulltitle: String, val uploader: String, val url: String)
 data class InfoOptions(val input: String)
 
+data class Entry(
+        val duration: Int,
+        val title: String,
+        val uploader: String,
+        val id: String
+)
+
 val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 val entryAdapter = moshi.adapter(Entry::class.java)
 
-fun info(options: InfoOptions): VideoInformation {
-    val commandLine = commandLine("youtube-dl") {
+fun getInfo(options: InfoOptions): VideoInformation {
+    val (_, consoleOutput, _) = YoutubeDlExecutor().execute {
         argument("--dump-json")
         argument("--skip-download")
         argument("--default-search")
@@ -19,11 +29,11 @@ fun info(options: InfoOptions): VideoInformation {
         argument(options.input)
     }
 
-    val executor = YoutubeDlExecutor(commandLine)
-    executor.execute()
-    val consoleOutput = executor.getOutputText()
-
-    val entry = entryAdapter.fromJson(consoleOutput) ?: throw RuntimeException("Unable to parse JSON data")
+    val entry = try {
+        entryAdapter.fromJson(consoleOutput) ?: throw RuntimeException("Unable to parse JSON data")
+    } catch (e: EOFException) {
+        throw RuntimeException("No results.")
+    }
     return VideoInformation(
             duration = entry.duration,
             fulltitle = entry.title,

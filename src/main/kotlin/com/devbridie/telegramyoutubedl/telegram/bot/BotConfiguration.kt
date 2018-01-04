@@ -1,4 +1,4 @@
-package com.devbridie.telegramyoutubedl.telegram
+package com.devbridie.telegramyoutubedl.telegram.bot
 
 import com.natpryce.konfig.PropertyGroup
 import com.natpryce.konfig.getValue
