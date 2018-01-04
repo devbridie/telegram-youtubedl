@@ -1,0 +1,4 @@
+# https://core.telegram.org/bots#6-botfather
+# copy to configuration.properties in this directory
+BotConfiguration.token=
+BotConfiguration.name=
