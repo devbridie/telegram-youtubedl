@@ -3,6 +3,10 @@ import org.gradle.kotlin.dsl.kotlin
 group = "com.devbridie.telegramyoutubedl"
 version = "1.0-SNAPSHOT"
 
+application {
+    mainClassName = "com.devbridie.telegramyoutubedl.MainKt"
+}
+
 plugins {
     application
     java
