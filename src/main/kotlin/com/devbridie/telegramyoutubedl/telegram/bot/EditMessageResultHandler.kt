@@ -18,7 +18,7 @@ class EditMessageResultHandler(val sender: AbsSender, val message: Message) {
             is FailedGettingInfoStatus ->
                 editSimpleMessage("Failed getting info from (${downloadStatus.input}).")
             is DownloadTooLongFailure ->
-                editSimpleMessage("Video (${downloadStatus.info.url}) duration (${downloadStatus.info}s) longer than maximum (${downloadStatus.maximum}s)")
+                editSimpleMessage("Video (${downloadStatus.info.url}) duration (${downloadStatus.info.duration}s) longer than maximum (${downloadStatus.maximum}s)")
             is DownloadingDownloadStatus ->
                 editSimpleMessage("Downloading video (${downloadStatus.info.url}, ${downloadStatus.info.duration}s)...")
             is CompletedDownloadStatus -> {
