@@ -52,6 +52,12 @@ abstract class YoutubeDlCommand(command: String, description: String) : BotComma
         try {
             val file = downloadFile(DownloadOptions(info.url))
             statusCallback(CompletedDownloadStatus(info, file))
+        } catch (e: YoutubeDlExitCodeException) {
+            e.printStackTrace()
+            println("youtube-dl out: ${e.out}")
+            println("youtube-dl err: ${e.err}")
+            statusCallback(FailedGettingInfoStatus(input))
+            return
         } catch (e: Exception) {
             statusCallback(FailedDownloadStatus(info))
         }
