@@ -3,7 +3,7 @@
 An implementation of a [Telegram](https://telegram.org/) bot that uses [youtube-dl](https://github.com/rg3/youtube-dl) to download videos from youtube.com and sends them as mp3.
 
 ## Usage
-1. Make sure `youtube-dl` is available in the path. Tested with version 2017.12.31.
+1. Make sure `youtube-dl` is available in the path. Tested with version 2018.09.18.
 2. Create a new bot using [BotFather](https://telegram.me/botfather).
 3. Copy `/src/main/resources/configuration.properties.example` to `/src/main/resources/configuration.properties`.
 4. Edit `/src/main/resources/configuration.properties` and fill in the bot name that was selected and the bot token that was given by BotFather.
