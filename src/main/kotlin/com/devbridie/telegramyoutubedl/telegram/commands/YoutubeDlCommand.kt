@@ -2,6 +2,7 @@ package com.devbridie.telegramyoutubedl.telegram.commands
 
 import com.devbridie.telegramyoutubedl.telegram.*
 import com.devbridie.telegramyoutubedl.telegram.bot.EditMessageResultHandler
+import com.devbridie.telegramyoutubedl.youtubedl.YoutubeDlExitCodeException
 import com.devbridie.telegramyoutubedl.youtubedl.wrappers.DownloadOptions
 import com.devbridie.telegramyoutubedl.youtubedl.wrappers.InfoOptions
 import com.devbridie.telegramyoutubedl.youtubedl.wrappers.downloadFile
@@ -28,7 +29,14 @@ abstract class YoutubeDlCommand(command: String, description: String) : BotComma
         statusCallback(GettingInfoDownloadStatus)
         val info = try {
             getInfo(InfoOptions(input))
+        } catch (e: YoutubeDlExitCodeException) {
+            e.printStackTrace()
+            println("youtube-dl out: ${e.out}")
+            println("youtube-dl err: ${e.err}")
+            statusCallback(FailedGettingInfoStatus(input))
+            return
         } catch (e: Exception) {
+            e.printStackTrace()
             statusCallback(FailedGettingInfoStatus(input))
             return
         }

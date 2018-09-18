@@ -30,9 +30,9 @@ fun getInfo(options: InfoOptions): VideoInformation {
     }
 
     val entry = try {
-        entryAdapter.fromJson(consoleOutput) ?: throw RuntimeException("Unable to parse JSON data")
+        entryAdapter.fromJson(consoleOutput) ?: throw RuntimeException("Unable to parse JSON data from data $consoleOutput")
     } catch (e: EOFException) {
-        throw RuntimeException("No results.")
+        throw RuntimeException("No results.", e)
     }
     return VideoInformation(
             duration = entry.duration,

@@ -13,7 +13,7 @@ data class YoutubeDlExecutorResult(
         val err: String
 )
 
-class YoutubeDlExitCodeException(val result: YoutubeDlExecutorResult) : RuntimeException("youtube-dl exited with code ${result.code}")
+class YoutubeDlExitCodeException(val out: String, val err: String, val result: YoutubeDlExecutorResult) : RuntimeException("youtube-dl exited with code ${result.code}")
 
 class YoutubeDlExecutor {
     private val outStream = ByteArrayOutputStream()
@@ -40,7 +40,7 @@ class YoutubeDlExecutor {
         if (code == 0) {
             return result
         } else {
-            throw YoutubeDlExitCodeException(result)
+            throw YoutubeDlExitCodeException(result.out, result.err, result)
         }
     }
 }
